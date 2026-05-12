@@ -1,0 +1,45 @@
+# ── Secrets ────────────────────────────────────────────────────
+.env
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.eggs/
+
+# ── Virtual environments ────────────────────────────────────────
+venv/
+.venv/
+env/
+.env.local
+
+# ── Logs & runtime output ───────────────────────────────────────
+logs/
+*.log
+
+# ── Generated projects (user data, not source code) ────────────
+projects/
+
+# ── Screenshots / temp assets ──────────────────────────────────
+assets/screenshots/
+
+# ── IDE / OS ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── pytest cache ────────────────────────────────────────────────
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage

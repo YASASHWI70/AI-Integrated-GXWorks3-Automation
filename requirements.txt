@@ -1,0 +1,43 @@
+# ============================================================
+# PLC AI Automation System - Dependencies
+# ============================================================
+
+# --- UI Automation ---
+pyautogui>=0.9.54          # Mouse/keyboard automation
+pygetwindow>=0.0.9         # Window management
+pywin32>=306               # Windows API access (win32gui, win32con)
+keyboard>=0.13.5           # Low-level keyboard hooks
+
+# --- Computer Vision & OCR ---
+opencv-python>=4.8.0       # Template matching, image processing
+Pillow>=10.0.0             # Image loading and manipulation
+pytesseract>=0.3.10        # OCR text recognition from screenshots
+
+# --- Data Validation & Modeling ---
+pydantic>=2.0.0            # Data models and validation
+
+# --- AI / LLM Integration ---
+anthropic>=0.40.0          # Anthropic Claude API (primary AI)
+python-dotenv>=1.0.0       # Load .env config files
+
+# --- PDF Parsing ---
+pdfplumber>=0.10.0         # Extract text from PDFs
+PyPDF2>=3.0.0              # Alternative PDF reader
+
+# --- Web API (Optional FastAPI server) ---
+fastapi>=0.104.0           # REST API framework
+uvicorn>=0.24.0            # ASGI server for FastAPI
+httpx>=0.25.0              # HTTP client
+
+# --- Retry & Reliability ---
+tenacity>=8.2.0            # Retry logic with backoff
+
+# --- Logging ---
+loguru>=0.7.0              # Enhanced logging
+
+# --- Process Management ---
+psutil>=5.9.0              # Process detection and management
+
+# --- Testing ---
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
