@@ -107,7 +107,7 @@ plc_ai_automation/
 ├── ai_layer/                  ← AI reasoning (LLM integration)
 │   ├── input_parser.py        ← Detect format & normalise user input
 │   ├── ladder_generator.py    ← LLM + rule-based ladder logic generation
-│   └── llm_client.py          ← OpenAI / Anthropic / Mock provider
+│   └── llm_client.py          ← Anthropic Claude / Mock provider
 │
 ├── parsers/                   ← Format-specific parsers
 │   ├── nlp_parser.py          ← Keyword NLP, address extraction
@@ -142,35 +142,213 @@ plc_ai_automation/
 
 ---
 
-## Quick Start
+## Setup Guide
 
-### Prerequisites
+Follow every step below in order. Skip Step 4 only if you want to run in
+**mock mode** (no real AI calls, useful for testing the automation pipeline).
 
-| Requirement | Notes |
-|---|---|
-| Python 3.11+ | [python.org](https://python.org) |
-| GX Works3 | Installed in a default MELSOFT path |
-| Tesseract OCR | [Download](https://github.com/UB-Mannheim/tesseract/wiki) — optional for MVP |
-| OpenAI / Anthropic key | Optional — system works in mock mode without one |
+---
 
-### Installation
+### Step 1 — System Requirements
 
-```bash
-# 1. Clone / copy the project
-cd C:\
-# (project is already at C:\plc_ai_automation)
+| Requirement | Minimum version | Notes |
+|---|---|---|
+| Windows | 10 / 11 (64-bit) | GX Works3 is Windows-only |
+| Python | 3.11+ | [python.org/downloads](https://www.python.org/downloads/) |
+| GX Works3 | Any recent version | Must be installed before running |
+| Tesseract OCR | 5.x | Required for screen-text reading |
+| Anthropic API key | — | Required unless using `LLM_PROVIDER=mock` |
+| RAM | 8 GB+ | 16 GB recommended for smooth UI automation |
+| Screen resolution | 1920 × 1080 | Other resolutions may need timing adjustments |
 
-# 2. Create a virtual environment
-python -m venv .venv
-.venv\Scripts\activate
+> **Display scaling** — set Windows display scaling to **100%**
+> (Settings → Display → Scale) before running. Higher scaling shifts UI
+> coordinates and breaks image matching.
 
-# 3. Install dependencies
-pip install -r requirements.txt
+---
 
-# 4. Configure your environment
-copy .env.example .env
-# Edit .env — set GXW3_EXE_PATH and optionally LLM_PROVIDER + API key
+### Step 2 — Install Python
+
+1. Download Python 3.11 or newer from [python.org](https://www.python.org/downloads/).
+2. Run the installer — **tick "Add Python to PATH"** before clicking Install.
+3. Verify in a new PowerShell window:
+   ```powershell
+   python --version   # should print Python 3.11.x or higher
+   pip --version
+   ```
+
+---
+
+### Step 3 — Install Tesseract OCR
+
+Tesseract is used to read text from GX Works3 screenshots.
+
+1. Download the Windows installer from:
+   [github.com/UB-Mannheim/tesseract/wiki](https://github.com/UB-Mannheim/tesseract/wiki)
+   (choose the latest `tesseract-ocr-w64-setup-*.exe`)
+2. Run the installer — **note the install path** (default:
+   `C:\Program Files\Tesseract-OCR\tesseract.exe`).
+3. Verify:
+   ```powershell
+   & "C:\Program Files\Tesseract-OCR\tesseract.exe" --version
+   ```
+
+---
+
+### Step 4 — Get an Anthropic API Key
+
+1. Sign up or log in at [console.anthropic.com](https://console.anthropic.com/).
+2. Go to **API Keys** → **Create Key** → copy the key (starts with `sk-ant-`).
+3. Keep it secret — never commit it to git (`.env` is in `.gitignore`).
+
+> Skip this step and set `LLM_PROVIDER=mock` in `.env` to run fully offline.
+
+---
+
+### Step 5 — Clone / Open the Project
+
+```powershell
+# If cloning from GitHub:
+git clone https://github.com/<your-username>/plc-ai-automation.git
+cd plc-ai-automation
+
+# If already on disk:
+cd C:\plc_ai_automation
 ```
+
+---
+
+### Step 6 — Create a Virtual Environment
+
+Using a virtual environment keeps dependencies isolated from your system Python.
+
+```powershell
+# Create the virtual environment
+python -m venv .venv
+
+# Activate it (must repeat this every new terminal session)
+.venv\Scripts\Activate.ps1
+
+# You should now see (.venv) in your prompt
+```
+
+> **PowerShell execution policy error?** Run this once:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
+
+---
+
+### Step 7 — Install Dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+This installs:
+- `anthropic` — Claude API client
+- `pyautogui`, `pygetwindow`, `pywin32`, `keyboard` — UI automation
+- `opencv-python`, `Pillow` — image matching
+- `pytesseract` — OCR
+- `pydantic` — data validation
+- `pdfplumber`, `PyPDF2` — PDF parsing
+- `loguru` — logging
+- `tenacity` — retry logic
+- and more (see [requirements.txt](requirements.txt))
+
+Verify everything installed:
+```powershell
+pip list | Select-String "anthropic|pyautogui|opencv|pydantic"
+```
+
+---
+
+### Step 8 — Configure the Environment File
+
+```powershell
+copy .env.example .env
+```
+
+Open `.env` in any text editor and fill in these values:
+
+```ini
+# ── GX Works3 ────────────────────────────────────────────────
+# Full path to GXW3.exe on your machine
+GXW3_EXE_PATH=C:\Program Files (x86)\MELSOFT\GXW3\GXW3.exe
+
+# Folder where new PLC projects will be saved
+DEFAULT_PROJECT_PATH=C:\plc_ai_automation\projects
+
+# ── AI Provider ──────────────────────────────────────────────
+LLM_PROVIDER=anthropic          # or "mock" for offline testing
+
+ANTHROPIC_API_KEY=sk-ant-...    # paste your key here
+ANTHROPIC_MODEL=claude-opus-4-5
+
+# ── OCR ──────────────────────────────────────────────────────
+TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+
+# ── Behavior ─────────────────────────────────────────────────
+DEBUG_AUTOMATION=false          # set true to slow down and see each step
+LOG_LEVEL=INFO
+```
+
+**Find your GXW3.exe path:**
+```powershell
+Get-ChildItem "C:\Program Files*" -Recurse -Filter "GXW3.exe" -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+---
+
+### Step 9 — Verify the Installation
+
+Run the built-in demo. It parses a request and validates ladder logic
+**without opening GX Works3 or spending any API credits**:
+
+```powershell
+python main.py --demo --input "Create a start-stop motor circuit using X0, X1, Y0"
+```
+
+Expected output (abbreviated):
+```
+12:00:00 | INFO     | main:run — Input parsed successfully
+12:00:00 | INFO     | main:run — Ladder program validated: 0 errors
+12:00:00 | INFO     | main:run — Demo mode: skipping GX Works3 automation
+12:00:00 | SUCCESS  | main:run — Done.
+```
+
+---
+
+### Step 10 — First Real Run
+
+Make sure GX Works3 is **closed** before running (the tool will open it):
+
+```powershell
+python main.py --input "Create a start-stop motor circuit using X0, X1, Y0" --project MyFirstProject
+```
+
+What happens:
+1. Claude generates ladder logic JSON from your description
+2. Validator checks addresses and rung structure
+3. GX Works3 is launched automatically
+4. A new project is created
+5. The ladder editor is opened
+6. Contacts and coils are inserted rung by rung
+7. The project is saved to `projects/MyFirstProject/`
+
+---
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `ANTHROPIC_API_KEY is not set` | Check `.env` exists and key is correct |
+| `GXW3.exe not found` | Set `GXW3_EXE_PATH` in `.env` to the exact path |
+| `tesseract is not installed` | Set `TESSERACT_PATH` in `.env` or reinstall Tesseract |
+| Mouse clicks land in wrong place | Set display scaling to 100%, use 1920×1080 |
+| GX Works3 opens but automation stalls | Increase `LAUNCH_WAIT_TIME` in `config.py` |
+| `ModuleNotFoundError` | Make sure `.venv` is activated and `pip install -r requirements.txt` was run |
+| PowerShell script error | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 
 ---
 
