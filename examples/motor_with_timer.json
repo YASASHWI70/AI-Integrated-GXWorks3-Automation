@@ -1,0 +1,33 @@
+{
+  "_comment": "Example: Full LadderProgram schema — Start-Stop with Timer output",
+  "name": "MAIN",
+  "description": "Motor with run-time indicator light",
+  "rungs": [
+    {
+      "id": 1,
+      "comment": "Start-Stop circuit for motor Y0",
+      "elements": [
+        { "type": "contact_no", "address": "X0", "label": "START",       "position": {"row": 0, "col": 0} },
+        { "type": "contact_no", "address": "Y0", "label": "MOTOR_LATCH", "position": {"row": 1, "col": 0} },
+        { "type": "contact_nc", "address": "X1", "label": "STOP",        "position": {"row": 0, "col": 1} },
+        { "type": "coil",       "address": "Y0", "label": "MOTOR",       "position": {"row": 0, "col": 2} }
+      ]
+    },
+    {
+      "id": 2,
+      "comment": "While motor runs, timer counts 10 seconds then activates indicator",
+      "elements": [
+        { "type": "contact_no", "address": "Y0", "label": "MOTOR_ON",    "position": {"row": 0, "col": 0} },
+        { "type": "timer_on",   "address": "T0", "label": "RUN_TIMER",   "position": {"row": 0, "col": 1}, "preset": 100 }
+      ]
+    },
+    {
+      "id": 3,
+      "comment": "Timer done → indicator light",
+      "elements": [
+        { "type": "contact_no", "address": "T0", "label": "TIMER_DONE",  "position": {"row": 0, "col": 0} },
+        { "type": "coil",       "address": "Y1", "label": "RUN_LIGHT",   "position": {"row": 0, "col": 1} }
+      ]
+    }
+  ]
+}

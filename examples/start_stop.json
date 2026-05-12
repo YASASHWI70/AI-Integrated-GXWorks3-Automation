@@ -1,0 +1,9 @@
+{
+  "_comment": "Example: Start-Stop Motor Control Circuit (shorthand notation)",
+  "type": "start_stop",
+  "name": "MOTOR_CONTROL",
+  "start":  "X0",
+  "stop":   "X1",
+  "output": "Y0",
+  "comment": "Motor Start-Stop with self-latch"
+}
