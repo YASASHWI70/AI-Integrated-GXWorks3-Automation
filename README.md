@@ -195,13 +195,89 @@ Tesseract is used to read text from GX Works3 screenshots.
 
 ---
 
-### Step 4 — Get an Anthropic API Key
+### Step 4 — Choose Your AI Mode
 
-1. Sign up or log in at [console.anthropic.com](https://console.anthropic.com/).
-2. Go to **API Keys** → **Create Key** → copy the key (starts with `sk-ant-`).
-3. Keep it secret — never commit it to git (`.env` is in `.gitignore`).
+The system supports three ways to run the AI layer. Pick the one that fits your situation:
 
-> Skip this step and set `LLM_PROVIDER=mock` in `.env` to run fully offline.
+---
+
+#### Option 1 — Anthropic API Key (Recommended)
+
+A Claude subscription (claude.ai) does **not** include API access — they are
+billed separately. However, Anthropic gives **free credits on sign-up** which
+are more than enough to test this project.
+
+1. Go to [console.anthropic.com](https://console.anthropic.com/) and create a free account.
+2. Navigate to **API Keys** → **Create Key**.
+3. Copy the key (starts with `sk-ant-api03-...`).
+4. Paste it into `.env`:
+   ```ini
+   LLM_PROVIDER=anthropic
+   ANTHROPIC_API_KEY=sk-ant-api03-...
+   ANTHROPIC_MODEL=claude-opus-4-5
+   ```
+5. Keep it secret — never commit it to git (`.env` is already in `.gitignore`).
+
+**Best for:** Full AI-generated ladder logic from natural language descriptions.
+
+---
+
+#### Option 2 — Mock Mode (No API, No Internet)
+
+The project has a built-in mock provider that returns realistic ladder logic
+JSON without any API call. It works completely offline.
+
+Set in `.env`:
+```ini
+LLM_PROVIDER=mock
+```
+
+The mock handles these patterns out of the box:
+- Start-stop motor circuits (keywords: `start`, `stop`, `motor`, `latch`)
+- Timer/delay circuits (keywords: `timer`, `delay`, `time`)
+- Basic contact-coil circuits (fallback for anything else)
+
+**Best for:** Testing the full GX Works3 automation pipeline without spending
+API credits, or when you have no internet access.
+
+---
+
+#### Option 3 — Local LLM via Ollama (Free, Runs on Your Machine)
+
+[Ollama](https://ollama.com) runs open-source LLMs locally — completely free,
+no API key, no internet required after the initial model download.
+
+**Setup:**
+
+1. Download and install Ollama from [ollama.com](https://ollama.com/download).
+2. Pull a capable model (choose based on your RAM):
+   ```powershell
+   # 8 GB RAM — lightweight, fast
+   ollama pull qwen2.5-coder:7b
+
+   # 16 GB RAM — better quality
+   ollama pull qwen2.5-coder:14b
+
+   # 32 GB RAM — best quality
+   ollama pull qwen2.5-coder:32b
+   ```
+3. Verify Ollama is running:
+   ```powershell
+   ollama list   # should show your downloaded models
+   ```
+4. Set in `.env`:
+   ```ini
+   LLM_PROVIDER=ollama
+   OLLAMA_MODEL=qwen2.5-coder:7b
+   OLLAMA_BASE_URL=http://localhost:11434
+   ```
+
+**Best for:** Users with a Claude subscription but no API key who want real
+AI-generated ladder logic without any ongoing cost.
+
+> **Note:** Ollama support requires adding the `ollama` provider to
+> `ai_layer/llm_client.py` and `config.py` — see the
+> [Ollama Integration](#ollama-integration) section below.
 
 ---
 
@@ -497,6 +573,72 @@ Run it:
 ```bash
 python main.py --input "start stop motor X0 X1 Y0" --project Milestone1
 ```
+
+---
+
+## Ollama Integration
+
+To enable Option 3 (local LLM), apply these two changes:
+
+### 1. Add Ollama settings to `config.py`
+
+```python
+# AI / LLM — add after existing ANTHROPIC_MODEL line
+LLM_PROVIDER      = os.getenv("LLM_PROVIDER", "anthropic")  # "anthropic"|"ollama"|"mock"
+OLLAMA_BASE_URL   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL      = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
+```
+
+### 2. Add `_ask_ollama()` to `ai_layer/llm_client.py`
+
+In `__init__`, update the valid providers check:
+```python
+if self.provider not in ("anthropic", "ollama", "mock"):
+    raise ValueError(...)
+```
+
+In `ask()`, add:
+```python
+if self.provider == "ollama":
+    return self._ask_ollama(user_prompt)
+```
+
+Add the method:
+```python
+def _ask_ollama(self, user_prompt: str) -> str:
+    """Call a local Ollama model via its REST API."""
+    try:
+        import httpx
+        payload = {
+            "model": config.OLLAMA_MODEL,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.1},
+        }
+        response = httpx.post(
+            f"{config.OLLAMA_BASE_URL}/api/chat",
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()["message"]["content"]
+    except Exception as exc:
+        logger.error("Ollama API error: %s", exc)
+        raise
+```
+
+### 3. Add to `.env`
+
+```ini
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen2.5-coder:7b
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+`httpx` is already in `requirements.txt` — no extra install needed.
 
 ---
 
